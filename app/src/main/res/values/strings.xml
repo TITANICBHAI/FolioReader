@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">LexiRead</string>
+
+    <!-- Onboarding -->
+    <string name="onboarding_title_1">Open any English PDF</string>
+    <string name="onboarding_desc_1">Read your favorite books, articles, and documents with interactive vocabulary assistance.</string>
+    <string name="onboarding_title_2">Tap highlighted words for instant meanings</string>
+    <string name="onboarding_desc_2">LexiRead automatically identifies challenging words and provides instant definitions and translations.</string>
+    <string name="onboarding_title_3">Build your vocabulary as you read</string>
+    <string name="onboarding_desc_3">Save new words, track your learning journey, and review your personal vocabulary anytime.</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+
+    <!-- Post Onboarding Model Prompt -->
+    <string name="hindi_prompt_title">Download Hindi Translation?</string>
+    <string name="hindi_prompt_desc">Download the ML Kit model (~30 MB) to enable instant offline English-to-Hindi sentence and word translations.</string>
+    <string name="hindi_prompt_download">Download now</string>
+    <string name="hindi_prompt_later">Maybe later</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_vocab_assistance">Vocabulary Assistance</string>
+    <string name="settings_vocab_assistance_desc">Automatically highlight difficult words on the page</string>
+    <string name="settings_highlight_density">Highlight Density</string>
+    <string name="settings_density_few">Few (4)</string>
+    <string name="settings_density_balanced">Balanced (6)</string>
+    <string name="settings_density_many">Many (10)</string>
+    <string name="settings_dark_mode">Dark Mode</string>
+    <string name="settings_dark_mode_system">System</string>
+    <string name="settings_dark_mode_light">Light</string>
+    <string name="settings_dark_mode_dark">Dark</string>
+    <string name="settings_hindi_translation">Hindi Translation</string>
+    <string name="settings_hindi_desc">On-device ML Kit sentence translation</string>
+    <string name="settings_model_downloaded">Downloaded ✓</string>
+    <string name="settings_model_not_downloaded">Not downloaded</string>
+    <string name="settings_download_model">Download model (~30 MB)</string>
+    <string name="settings_delete_model">Delete model</string>
+    <string name="settings_gemini_title">Gemini AI</string>
+    <string name="settings_gemini_desc">Optional AI explanations using your own Gemini key</string>
+    <string name="settings_clear_vocab">Clear my vocabulary</string>
+    <string name="settings_clear_vocab_desc">Remove all saved words from your vocabulary list</string>
+    <string name="settings_clear_vocab_confirm_title">Clear Vocabulary?</string>
+    <string name="settings_clear_vocab_confirm_desc">This will delete all saved words from your vocabulary list. This action cannot be undone.</string>
+    <string name="settings_clear_vocab_confirm_btn">Clear All</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_app_version">App version</string>
+
+    <!-- Errors and Alerts -->
+    <string name="error_password_protected">This PDF is password protected</string>
+    <string name="error_corrupted_pdf">Cannot open this file</string>
+    <string name="warning_large_document">Large document — OCR may be slow on some pages</string>
+</resources>
