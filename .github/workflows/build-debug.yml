@@ -1,28 +1,20 @@
-name: Build Release (APK + AAB)
+name: Build Debug APK
 
-# Builds the signed release APK and AAB for Google Play.
-#
-# Required secrets:
-#   RELEASE_KEYSTORE_BASE64   base64-encoded .jks keystore file
-#   RELEASE_STORE_PASSWORD    keystore store password
-#   RELEASE_KEY_ALIAS         key alias inside the keystore
-#   RELEASE_KEY_PASSWORD      key password
+# Builds a debug APK on every push to main.
+# No secrets required — the app uses a generated debug keystore.
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  build-release:
-    name: Release APK + AAB
+  build:
+    name: Debug APK
     runs-on: ubuntu-latest
-
-    env:
-      STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-      KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-      KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
 
     steps:
       # ── 1. Source ──────────────────────────────────────────────────────────
@@ -42,14 +34,20 @@ jobs:
           packages: "platform-tools platforms;android-35 build-tools;35.0.0"
           accept-android-sdk-licenses: true
 
-      # ── 3. Release signing ─────────────────────────────────────────────────
-      - name: Restore release keystore
-        env:
-          RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
+      # The project points its debug signing config at this file.
+      - name: Create debug keystore
         run: |
-          printf '%s' "$RELEASE_KEYSTORE_BASE64" | base64 --decode > my-upload-key.jks
-          chmod 600 my-upload-key.jks
+          keytool -genkeypair \
+            -keystore debug.keystore \
+            -storepass android \
+            -keypass android \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
 
+      # ── 3. Caches ──────────────────────────────────────────────────────────
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
 
@@ -64,31 +62,23 @@ jobs:
           echo "### Build Info" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Version:** $VERSION" >> "$GITHUB_STEP_SUMMARY"
           echo "- **versionCode:** $VCODE" >> "$GITHUB_STEP_SUMMARY"
-          echo "- **Type:** Release APK + AAB" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Type:** Debug APK" >> "$GITHUB_STEP_SUMMARY"
           echo "- **Build number:** ${{ github.run_number }}" >> "$GITHUB_STEP_SUMMARY"
 
       # ── 5. Build ───────────────────────────────────────────────────────────
-      - name: Build release APK and AAB
+      - name: Build debug APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6g -XX:MaxMetaspaceSize=512m -Dorg.gradle.daemon=false"
         run: |
-          ./gradlew :app:assembleRelease :app:bundleRelease --no-daemon --max-workers=2
-
-          echo "── Release outputs ──"
-          find app/build/outputs/apk/release/ app/build/outputs/bundle/release/ \
-            \( -name "*.apk" -o -name "*.aab" \) -exec ls -lh {} \;
+          ./gradlew :app:assembleDebug --no-daemon --max-workers=2
+          echo "── Debug APK outputs ──"
+          find app/build/outputs/apk/debug/ -name "*.apk" -exec ls -lh {} \;
 
       # ── 6. Upload ──────────────────────────────────────────────────────────
-      - name: Upload release artifacts
+      - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: folio-reader-release-v${{ steps.app-version.outputs.version }}-vc${{ steps.app-version.outputs.versionCode }}-run${{ github.run_number }}
-          path: |
-            app/build/outputs/apk/release/app-release.apk
-            app/build/outputs/bundle/release/app-release.aab
+          name: folio-reader-debug-v${{ steps.app-version.outputs.version }}-vc${{ steps.app-version.outputs.versionCode }}-run${{ github.run_number }}
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
-          retention-days: 30
-
-      - name: Remove keystore from runner
-        if: always()
-        run: rm -f my-upload-key.jks
+          retention-days: 14
