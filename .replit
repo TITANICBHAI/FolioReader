@@ -1,0 +1,18 @@
+modules = ["java-graalvm22.3"]
+[nix]
+channel = "stable-25_05"
+packages = ["gradle"]
+
+[agent]
+expertMode = true
+
+[[workflows.workflow]]
+name = "Push to GitHub"
+author = "replit-agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "bash scripts/push-to-github.sh"
+
+[workflows.workflow.metadata]
+outputType = "console"

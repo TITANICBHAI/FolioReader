@@ -11,11 +11,11 @@ plugins {
 }
 
 android {
-  namespace = "com.tbtechsdev.lexiread"
+  namespace = "com.tbtechs.folioreader"
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.aistudio.folioreader.gvyrrw"
+    applicationId = "com.tbtechs.folioreader"
     minSdk = 26
     targetSdk = 35
     versionCode = 1
@@ -29,7 +29,7 @@ android {
       val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
       storeFile = file(keystorePath)
       storePassword = System.getenv("STORE_PASSWORD")
-      keyAlias = "upload"
+      keyAlias = System.getenv("KEY_ALIAS") ?: "folioreader"
       keyPassword = System.getenv("KEY_PASSWORD")
     }
     create("debugConfig") {
