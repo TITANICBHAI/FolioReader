@@ -1,5 +1,6 @@
 package com.tbtechsdev.lexiread.ui
 
+import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -20,6 +21,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,12 +41,39 @@ import com.tbtechsdev.lexiread.ui.reader.ReaderViewModel
 
 @Composable
 fun LexiReadMainScreen(
+    pendingPdfUri: Uri? = null,
+    onPdfHandled: () -> Unit = {},
     readerViewModel: ReaderViewModel = hiltViewModel()
 ) {
     val isOnboardingCompleted by readerViewModel.isOnboardingCompleted.collectAsStateWithLifecycle()
     val showPostOnboardingHindiPrompt by readerViewModel.showPostOnboardingHindiPrompt.collectAsStateWithLifecycle()
 
-    if (!isOnboardingCompleted) {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+    val readerUiState by readerViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Automatically handle external incoming PDF (from WhatsApp, Chrome, My Files, Drive, etc.)
+    LaunchedEffect(pendingPdfUri) {
+        pendingPdfUri?.let { uri ->
+            if (!isOnboardingCompleted) {
+                readerViewModel.completeOnboarding()
+            }
+            readerViewModel.openPdf(uri)
+            if (currentDestination?.hierarchy?.any { it.route == Screen.Reader.route } != true) {
+                navController.navigate(Screen.Reader.route) {
+                    popUpTo(navController.graph.findStartDestination().id) {
+                        saveState = true
+                    }
+                    launchSingleTop = true
+                    restoreState = true
+                }
+            }
+            onPdfHandled()
+        }
+    }
+
+    if (!isOnboardingCompleted && pendingPdfUri == null) {
         OnboardingScreen(
             onFinished = {
                 readerViewModel.completeOnboarding()
@@ -52,11 +81,6 @@ fun LexiReadMainScreen(
         )
         return
     }
-
-    val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
-    val readerUiState by readerViewModel.uiState.collectAsStateWithLifecycle()
 
     val isReaderTab = currentDestination?.hierarchy?.any { it.route == Screen.Reader.route } != false
     val isClassroomRemote = currentDestination?.route == Screen.ClassroomRemote.route

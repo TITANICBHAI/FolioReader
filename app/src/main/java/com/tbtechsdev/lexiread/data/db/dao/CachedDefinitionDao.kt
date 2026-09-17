@@ -14,4 +14,7 @@ interface CachedDefinitionDao {
 
     @Query("SELECT * FROM cached_definitions WHERE word = :word LIMIT 1")
     suspend fun getByWord(word: String): CachedDefinition?
+
+    @Query("SELECT * FROM cached_definitions")
+    suspend fun getAll(): List<CachedDefinition>
 }

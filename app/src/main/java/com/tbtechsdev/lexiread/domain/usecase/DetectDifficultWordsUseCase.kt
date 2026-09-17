@@ -54,7 +54,7 @@ class DetectDifficultWordsUseCase(
 
             // 3. UserWordRepository.getStatus(word) = KNOWN or IGNORED -> skip
             val status = userWordRepository.getStatus(norm)
-            if (status == WordStatus.KNOWN || status == WordStatus.IGNORED) {
+            if (status == WordStatus.KNOWN || status == WordStatus.MASTERED || status == WordStatus.IGNORED) {
                 continue
             }
 

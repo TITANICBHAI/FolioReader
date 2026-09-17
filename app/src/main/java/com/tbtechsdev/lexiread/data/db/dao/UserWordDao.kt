@@ -18,8 +18,17 @@ interface UserWordDao {
     @Query("SELECT * FROM user_words WHERE status = :status ORDER BY lastSeenMs DESC")
     fun getAllByStatus(status: String): Flow<List<UserWordEntity>>
 
+    @Query("SELECT * FROM user_words WHERE status IN (:statuses) ORDER BY lastSeenMs DESC")
+    fun getAllByStatuses(statuses: List<String>): Flow<List<UserWordEntity>>
+
+    @Query("SELECT * FROM user_words WHERE status IN (:statuses) ORDER BY lastSeenMs DESC")
+    suspend fun getListByStatuses(statuses: List<String>): List<UserWordEntity>
+
     @Query("SELECT * FROM user_words ORDER BY lastSeenMs DESC")
     fun getAll(): Flow<List<UserWordEntity>>
+
+    @Query("SELECT * FROM user_words ORDER BY lastSeenMs DESC")
+    suspend fun getAllList(): List<UserWordEntity>
 
     @Query("DELETE FROM user_words WHERE word = :word")
     suspend fun deleteByWord(word: String)

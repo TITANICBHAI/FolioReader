@@ -55,10 +55,18 @@ class FakeTranslationRepository(
     var downloadCallCount = 0
     var deleteCallCount = 0
     var translateCallCount = 0
+    var lastLanguageCode: String? = null
 
     override suspend fun isModelDownloaded(): Boolean = isDownloaded
 
+    override suspend fun isModelDownloaded(languageCode: String): Boolean = isDownloaded
+
     override suspend fun downloadModel(onProgress: (Float) -> Unit) {
+        downloadModel("hi", onProgress)
+    }
+
+    override suspend fun downloadModel(languageCode: String, onProgress: (Float) -> Unit) {
+        lastLanguageCode = languageCode
         downloadCallCount++
         onProgress(0.5f)
         onProgress(1.0f)
@@ -66,11 +74,19 @@ class FakeTranslationRepository(
     }
 
     override suspend fun deleteModel() {
+        deleteModel("hi")
+    }
+
+    override suspend fun deleteModel(languageCode: String) {
+        lastLanguageCode = languageCode
         deleteCallCount++
         isDownloaded = false
     }
 
-    override suspend fun translate(text: String): String? {
+    override suspend fun translate(text: String): String? = translate(text, "hi")
+
+    override suspend fun translate(text: String, targetLanguageCode: String): String? {
+        lastLanguageCode = targetLanguageCode
         translateCallCount++
         return if (isDownloaded) translationResult else null
     }

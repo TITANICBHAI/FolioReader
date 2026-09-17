@@ -43,6 +43,10 @@ import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.RotateRight
+import androidx.compose.material.icons.filled.ScreenLockLandscape
+import androidx.compose.material.icons.filled.ScreenLockPortrait
+import androidx.compose.material.icons.filled.ScreenRotation
 import androidx.compose.material.icons.filled.Tv
 import androidx.compose.material.icons.outlined.ErrorOutline
 import androidx.compose.material.icons.outlined.Translate
@@ -59,7 +63,9 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -67,6 +73,7 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import com.tbtechsdev.lexiread.util.ScreenOrientationMode
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -106,7 +113,9 @@ fun ReaderScreen(
     val isVocabAssistanceEnabled by viewModel.isVocabAssistanceEnabled.collectAsStateWithLifecycle()
     val classroomState by viewModel.classroomState.collectAsStateWithLifecycle()
     val classroomCursorIndex by viewModel.classroomCursorIndex.collectAsStateWithLifecycle()
+    val screenOrientation by viewModel.screenOrientation.collectAsStateWithLifecycle()
 
+    var showOrientationDialog by remember { mutableStateOf(false) }
     var showClassroomSheet by remember { mutableStateOf(false) }
     var isHostingModeSelected by remember { mutableStateOf(false) }
     var sessionNameInput by remember { mutableStateOf(Build.MODEL ?: "Classroom") }
@@ -131,6 +140,7 @@ fun ReaderScreen(
     val selectedWordDefinition by viewModel.selectedWordDefinition.collectAsStateWithLifecycle()
     val selectedWordContextSentence by viewModel.selectedWordContextSentence.collectAsStateWithLifecycle()
     val isHindiModelDownloaded by viewModel.isHindiModelDownloaded.collectAsStateWithLifecycle()
+    val targetLanguage by viewModel.targetLanguage.collectAsStateWithLifecycle()
     val sentenceTranslationState by viewModel.sentenceTranslationState.collectAsStateWithLifecycle()
     val showTranslationDownloadPrompt by viewModel.showTranslationDownloadPrompt.collectAsStateWithLifecycle()
 
@@ -388,6 +398,35 @@ fun ReaderScreen(
                                 )
                             }
 
+                            // Quick Rotate 90° One-Tap Manual Button
+                            IconButton(
+                                onClick = { viewModel.quickRotate() },
+                                modifier = Modifier.testTag("quick_rotate_top_bar_button")
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.RotateRight,
+                                    contentDescription = "Quick Rotate 90°",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Screen Rotation & Orientation Lock Button
+                            IconButton(
+                                onClick = { showOrientationDialog = true },
+                                modifier = Modifier.testTag("screen_orientation_button")
+                            ) {
+                                val (icon, tint) = when (screenOrientation) {
+                                    ScreenOrientationMode.SENSOR -> Pair(Icons.Filled.ScreenRotation, MaterialTheme.colorScheme.primary)
+                                    ScreenOrientationMode.PORTRAIT -> Pair(Icons.Filled.ScreenLockPortrait, Color(0xFF00897B))
+                                    ScreenOrientationMode.LANDSCAPE -> Pair(Icons.Filled.ScreenLockLandscape, Color(0xFF7B1FA2))
+                                }
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = "Screen Orientation (${screenOrientation.title})",
+                                    tint = tint
+                                )
+                            }
+
                             IconButton(
                                 onClick = { openDocLauncher.launch(arrayOf("application/pdf")) },
                                 modifier = Modifier.testTag("open_another_pdf_button")
@@ -606,6 +645,9 @@ fun ReaderScreen(
 
         // First-launch translation model prompt dialog
         if (showTranslationDownloadPrompt) {
+            val currentTargetLang = remember(targetLanguage) {
+                com.tbtechsdev.lexiread.data.translation.SupportedLanguages.getByCode(targetLanguage)
+            }
             AlertDialog(
                 onDismissRequest = { viewModel.dismissTranslationPrompt(markAsShown = true) },
                 icon = {
@@ -617,14 +659,14 @@ fun ReaderScreen(
                 },
                 title = {
                     Text(
-                        text = "Hindi Sentence Translation",
+                        text = "${currentTargetLang.displayName} Sentence Translation",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
                 },
                 text = {
                     Text(
-                        text = "Download a 30 MB model to enable Hindi sentence translation directly in your reading view.",
+                        text = "Download a 30 MB model to enable ${currentTargetLang.displayName} sentence translation directly in your reading view.",
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
@@ -672,7 +714,13 @@ fun ReaderScreen(
                 onIgnore = { viewModel.markSelectedWordIgnored() },
                 onDismissRequest = { viewModel.dismissWordPanel() },
                 onPronounceWord = { w -> viewModel.pronounceWord(w) },
-                onCopyWord = { w -> viewModel.copyTextToClipboard(w, "Word") }
+                onCopyWord = { w -> viewModel.copyTextToClipboard(w, "Word") },
+                phonetic = selectedWordDefinition?.phonetic,
+                example = selectedWordDefinition?.example,
+                synonyms = selectedWordDefinition?.synonyms?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+                antonyms = selectedWordDefinition?.antonyms?.split(",")?.map { it.trim() }?.filter { it.isNotBlank() } ?: emptyList(),
+                onSynonymClick = { syn -> viewModel.selectWordByText(syn) },
+                targetLanguageCode = targetLanguage
             )
         }
 
@@ -852,7 +900,143 @@ fun ReaderScreen(
                 }
             }
         }
+
+        // Screen Orientation & Sensor Lock Dialog
+        if (showOrientationDialog) {
+            ScreenOrientationDialog(
+                currentMode = screenOrientation,
+                onSelectMode = { mode ->
+                    viewModel.setScreenOrientation(mode)
+                },
+                onQuickRotate = {
+                    viewModel.toggleScreenOrientation()
+                },
+                onDismiss = { showOrientationDialog = false }
+            )
+        }
     }
+}
+
+@Composable
+private fun ScreenOrientationDialog(
+    currentMode: ScreenOrientationMode,
+    onSelectMode: (ScreenOrientationMode) -> Unit,
+    onQuickRotate: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ScreenRotation,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "Screen Orientation",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Text(
+                    text = "Control how the reader rotates. You can allow device sensors to auto-rotate, lock to portrait/landscape, or rotate manually.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                ScreenOrientationMode.entries.forEach { mode ->
+                    val isSelected = currentMode == mode
+                    val icon = when (mode) {
+                        ScreenOrientationMode.SENSOR -> Icons.Filled.ScreenRotation
+                        ScreenOrientationMode.PORTRAIT -> Icons.Filled.ScreenLockPortrait
+                        ScreenOrientationMode.LANDSCAPE -> Icons.Filled.ScreenLockLandscape
+                    }
+                    Surface(
+                        onClick = { onSelectMode(mode) },
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("orientation_option_${mode.key}")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = mode.title,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    text = mode.description,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = { onSelectMode(mode) }
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(2.dp))
+
+                // Quick Rotate 90° button
+                OutlinedButton(
+                    onClick = { onQuickRotate() },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("quick_rotate_button")
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.RotateRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Rotate 90° Now", fontWeight = FontWeight.SemiBold)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier.testTag("orientation_dialog_done_button")
+            ) {
+                Text("Done")
+            }
+        }
+    )
 }
 
 @Composable
@@ -899,7 +1083,7 @@ private fun ReaderEmptyState(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "LexiRead PDF Reader",
+                    text = "Folio Reader",
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     textAlign = TextAlign.Center

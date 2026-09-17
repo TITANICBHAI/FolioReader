@@ -82,7 +82,11 @@ class DictionaryRepositoryTest {
             word = "ubiquitous",
             partOfSpeech = "adjective",
             englishDefinition = "present, appearing, or found everywhere.",
-            hindiMeaning = "सर्वव्यापी"
+            hindiMeaning = "सर्वव्यापी",
+            phonetic = "/juːˈbɪk.wɪ.təs/",
+            example = "Smartphones have become ubiquitous.",
+            synonyms = "omnipresent, universal",
+            antonyms = "rare, scarce"
         )
         database.cachedDefinitionDao().upsert(cached)
 
@@ -90,6 +94,22 @@ class DictionaryRepositoryTest {
         assertNotNull(result)
         assertEquals("ubiquitous", result?.word)
         assertEquals("present, appearing, or found everywhere.", result?.englishDefinition)
+        assertEquals("/juːˈbɪk.wɪ.təs/", result?.phonetic)
+        assertEquals("Smartphones have become ubiquitous.", result?.example)
+        assertEquals("omnipresent, universal", result?.synonyms)
+        assertEquals("rare, scarce", result?.antonyms)
+    }
+
+    @Test
+    fun getDefinition_offlineProvider_returnsRichDetailsForKnownWord() = runTest(testDispatcher) {
+        val result = repository.getDefinition("meticulous")
+        assertNotNull(result)
+        assertEquals("meticulous", result?.word)
+        assertEquals("adjective", result?.partOfSpeech)
+        assertTrue(result?.englishDefinition?.isNotBlank() == true)
+        assertEquals("/məˈtɪk.jə.ləs/", result?.phonetic)
+        assertTrue(result?.example?.isNotBlank() == true)
+        assertTrue(result?.synonyms?.contains("thorough") == true)
     }
 
     @Test

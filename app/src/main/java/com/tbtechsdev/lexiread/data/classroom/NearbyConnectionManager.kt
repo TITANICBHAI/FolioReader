@@ -168,7 +168,7 @@ class NearbyConnectionManager @Inject constructor() {
         val client = connectionsClient ?: Nearby.getConnectionsClient(context.applicationContext).also {
             connectionsClient = it
         }
-        val localName = Build.MODEL ?: "LexiRead Remote"
+        val localName = Build.MODEL ?: "Folio Reader Remote"
         client.requestConnection(localName, endpointId, connectionLifecycleCallback)
             .addOnSuccessListener {
                 Log.d(TAG, "Connection requested to $endpointId")

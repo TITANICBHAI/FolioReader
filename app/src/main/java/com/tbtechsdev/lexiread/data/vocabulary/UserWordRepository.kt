@@ -56,7 +56,26 @@ open class UserWordRepository @Inject constructor(
     }
 
     override fun getAllByStatus(status: WordStatus): Flow<List<UserWordEntity>> {
-        return userWordDao.getAllByStatus(status.name)
+        return if (status == WordStatus.MASTERED || status == WordStatus.KNOWN) {
+            userWordDao.getAllByStatuses(listOf(WordStatus.MASTERED.name, WordStatus.KNOWN.name))
+        } else {
+            userWordDao.getAllByStatus(status.name)
+        }
+    }
+
+    suspend fun getWordsListByStatuses(statuses: List<WordStatus>): List<UserWordEntity> = withContext(ioDispatcher) {
+        val names = statuses.flatMap {
+            if (it == WordStatus.MASTERED || it == WordStatus.KNOWN) {
+                listOf(WordStatus.MASTERED.name, WordStatus.KNOWN.name)
+            } else {
+                listOf(it.name)
+            }
+        }.distinct()
+        if (names.isEmpty()) userWordDao.getAllList() else userWordDao.getListByStatuses(names)
+    }
+
+    suspend fun getAllWordsList(): List<UserWordEntity> = withContext(ioDispatcher) {
+        userWordDao.getAllList()
     }
 
     override fun getAllWords(): Flow<List<UserWordEntity>> {

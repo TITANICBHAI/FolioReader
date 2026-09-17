@@ -14,6 +14,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -28,40 +29,43 @@ class TranslationRepository @Inject constructor() : ITranslationRepository {
         RemoteModelManager.getInstance()
     }
 
-    private val hindiModel: TranslateRemoteModel by lazy {
-        TranslateRemoteModel.Builder(TranslateLanguage.HINDI).build()
+    private val translators = ConcurrentHashMap<String, Translator>()
+
+    private fun getModel(languageCode: String): TranslateRemoteModel {
+        return TranslateRemoteModel.Builder(languageCode).build()
     }
 
-    private val translatorOptions by lazy {
-        TranslatorOptions.Builder()
-            .setSourceLanguage(TranslateLanguage.ENGLISH)
-            .setTargetLanguage(TranslateLanguage.HINDI)
-            .build()
-    }
-
-    @Volatile
-    private var translator: Translator? = null
-
-    private fun getOrCreateTranslator(): Translator {
-        val current = translator
-        if (current != null) return current
-        return synchronized(this) {
-            translator ?: Translation.getClient(translatorOptions).also { translator = it }
+    private fun getOrCreateTranslator(languageCode: String): Translator {
+        return translators.computeIfAbsent(languageCode) { code ->
+            val options = TranslatorOptions.Builder()
+                .setSourceLanguage(TranslateLanguage.ENGLISH)
+                .setTargetLanguage(code)
+                .build()
+            Translation.getClient(options)
         }
     }
 
-    override suspend fun isModelDownloaded(): Boolean = withContext(Dispatchers.IO) {
+    override suspend fun isModelDownloaded(): Boolean {
+        return isModelDownloaded(TranslateLanguage.HINDI)
+    }
+
+    override suspend fun isModelDownloaded(languageCode: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val task = modelManager.isModelDownloaded(hindiModel)
+            val model = getModel(languageCode)
+            val task = modelManager.isModelDownloaded(model)
             val isDownloaded = Tasks.await(task) == true
             isDownloaded
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to check model download status", e)
+            Log.e(TAG, "Failed to check model download status for $languageCode", e)
             false
         }
     }
 
-    override suspend fun downloadModel(onProgress: (Float) -> Unit): Unit = withContext(Dispatchers.IO) {
+    override suspend fun downloadModel(onProgress: (Float) -> Unit) {
+        downloadModel(TranslateLanguage.HINDI, onProgress)
+    }
+
+    override suspend fun downloadModel(languageCode: String, onProgress: (Float) -> Unit): Unit = withContext(Dispatchers.IO) {
         val conditions = DownloadConditions.Builder().build()
         onProgress(0.05f)
 
@@ -75,48 +79,55 @@ class TranslationRepository @Inject constructor() : ITranslationRepository {
         }
 
         try {
-            val client = getOrCreateTranslator()
+            val client = getOrCreateTranslator(languageCode)
             val downloadTask = client.downloadModelIfNeeded(conditions)
             Tasks.await(downloadTask)
             progressJob.cancel()
             onProgress(1.0f)
-            Log.d(TAG, "Hindi model downloaded successfully")
+            Log.d(TAG, "Translation model for $languageCode downloaded successfully")
         } catch (e: Exception) {
             progressJob.cancel()
-            Log.e(TAG, "Error downloading Hindi model", e)
+            Log.e(TAG, "Error downloading model for $languageCode", e)
             throw e
         }
     }
 
-    override suspend fun deleteModel(): Unit = withContext(Dispatchers.IO) {
+    override suspend fun deleteModel() {
+        deleteModel(TranslateLanguage.HINDI)
+    }
+
+    override suspend fun deleteModel(languageCode: String): Unit = withContext(Dispatchers.IO) {
         try {
-            synchronized(this@TranslationRepository) {
-                translator?.close()
-                translator = null
-            }
-            val deleteTask = modelManager.deleteDownloadedModel(hindiModel)
+            val removed = translators.remove(languageCode)
+            removed?.close()
+            val model = getModel(languageCode)
+            val deleteTask = modelManager.deleteDownloadedModel(model)
             Tasks.await(deleteTask)
-            Log.d(TAG, "Hindi model deleted successfully")
+            Log.d(TAG, "Translation model for $languageCode deleted successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting Hindi model", e)
+            Log.e(TAG, "Error deleting translation model for $languageCode", e)
             throw e
         }
     }
 
-    override suspend fun translate(text: String): String? = withContext(Dispatchers.IO) {
+    override suspend fun translate(text: String): String? {
+        return translate(text, TranslateLanguage.HINDI)
+    }
+
+    override suspend fun translate(text: String, targetLanguageCode: String): String? = withContext(Dispatchers.IO) {
         if (text.isBlank()) return@withContext ""
         try {
-            val isDownloaded = isModelDownloaded()
+            val isDownloaded = isModelDownloaded(targetLanguageCode)
             if (!isDownloaded) {
-                Log.w(TAG, "Cannot translate: model is not downloaded")
+                Log.w(TAG, "Cannot translate: model for $targetLanguageCode is not downloaded")
                 return@withContext null
             }
-            val client = getOrCreateTranslator()
+            val client = getOrCreateTranslator(targetLanguageCode)
             val task = client.translate(text)
             val result = Tasks.await(task)
             result
         } catch (e: Exception) {
-            Log.e(TAG, "Translation error for text: $text", e)
+            Log.e(TAG, "Translation error for text ($targetLanguageCode): $text", e)
             null
         }
     }

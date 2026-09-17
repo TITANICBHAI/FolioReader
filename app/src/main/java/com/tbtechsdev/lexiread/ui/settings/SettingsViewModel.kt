@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.tbtechsdev.lexiread.data.ai.IGeminiRepository
 import com.tbtechsdev.lexiread.data.preferences.ReaderPreferencesRepository
 import com.tbtechsdev.lexiread.data.translation.ITranslationRepository
+import com.tbtechsdev.lexiread.data.translation.SupportedLanguages
+import com.tbtechsdev.lexiread.data.translation.TargetLanguage
 import com.tbtechsdev.lexiread.data.vocabulary.IUserWordRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -22,6 +24,8 @@ enum class GeminiValidationStatus {
 }
 
 data class SettingsUiState(
+    val targetLanguage: String = "hi",
+    val availableLanguages: List<TargetLanguage> = SupportedLanguages.ALL,
     val isModelDownloaded: Boolean = false,
     val isDownloading: Boolean = false,
     val downloadProgress: Float = 0f,
@@ -50,8 +54,16 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            preferencesRepository.targetLanguage.collect { lang ->
+                _uiState.value = _uiState.value.copy(targetLanguage = lang)
+                checkModelStatus(lang)
+            }
+        }
+        viewModelScope.launch {
             preferencesRepository.isHindiModelDownloaded.collect { downloaded ->
-                _uiState.value = _uiState.value.copy(isModelDownloaded = downloaded)
+                if (_uiState.value.targetLanguage == "hi") {
+                    _uiState.value = _uiState.value.copy(isModelDownloaded = downloaded)
+                }
             }
         }
         viewModelScope.launch {
@@ -74,6 +86,14 @@ class SettingsViewModel @Inject constructor(
         checkGeminiStatus()
     }
 
+    fun setTargetLanguage(languageCode: String) {
+        viewModelScope.launch {
+            preferencesRepository.setTargetLanguage(languageCode)
+            _uiState.value = _uiState.value.copy(targetLanguage = languageCode)
+            checkModelStatus(languageCode)
+        }
+    }
+
     fun checkGeminiStatus() {
         val configured = geminiRepository.isConfigured()
         val storedKey = geminiRepository.getStoredApiKey() ?: ""
@@ -83,13 +103,15 @@ class SettingsViewModel @Inject constructor(
         )
     }
 
-    fun checkModelStatus(): Job = viewModelScope.launch {
-        val downloaded = translationRepository.isModelDownloaded()
+    fun checkModelStatus(languageCode: String = _uiState.value.targetLanguage): Job = viewModelScope.launch {
+        val downloaded = translationRepository.isModelDownloaded(languageCode)
         _uiState.value = _uiState.value.copy(isModelDownloaded = downloaded)
-        preferencesRepository.setHindiModelDownloaded(downloaded)
+        if (languageCode == "hi") {
+            preferencesRepository.setHindiModelDownloaded(downloaded)
+        }
     }
 
-    fun downloadModel(): Job {
+    fun downloadModel(languageCode: String = _uiState.value.targetLanguage): Job {
         if (_uiState.value.isDownloading) return Job()
         _uiState.value = _uiState.value.copy(
             isDownloading = true,
@@ -98,7 +120,7 @@ class SettingsViewModel @Inject constructor(
         )
         return viewModelScope.launch {
             try {
-                translationRepository.downloadModel { progress ->
+                translationRepository.downloadModel(languageCode) { progress ->
                     _uiState.value = _uiState.value.copy(downloadProgress = progress)
                 }
                 _uiState.value = _uiState.value.copy(
@@ -106,7 +128,9 @@ class SettingsViewModel @Inject constructor(
                     downloadProgress = 1f,
                     isModelDownloaded = true
                 )
-                preferencesRepository.setHindiModelDownloaded(true)
+                if (languageCode == "hi") {
+                    preferencesRepository.setHindiModelDownloaded(true)
+                }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isDownloading = false,
@@ -117,14 +141,16 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun deleteModel(): Job = viewModelScope.launch {
+    fun deleteModel(languageCode: String = _uiState.value.targetLanguage): Job = viewModelScope.launch {
         try {
-            translationRepository.deleteModel()
+            translationRepository.deleteModel(languageCode)
             _uiState.value = _uiState.value.copy(
                 isModelDownloaded = false,
                 errorMessage = null
             )
-            preferencesRepository.setHindiModelDownloaded(false)
+            if (languageCode == "hi") {
+                preferencesRepository.setHindiModelDownloaded(false)
+            }
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
                 errorMessage = "Failed to delete model."

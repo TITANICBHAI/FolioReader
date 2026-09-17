@@ -113,7 +113,89 @@ fun SettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. Hindi Translation Section
+            // 1. Offline Translation Section
+            var showLanguageDialog by remember { mutableStateOf(false) }
+            val currentLanguage = remember(uiState.targetLanguage) {
+                com.tbtechsdev.lexiread.data.translation.SupportedLanguages.getByCode(uiState.targetLanguage)
+            }
+
+            if (showLanguageDialog) {
+                AlertDialog(
+                    onDismissRequest = { showLanguageDialog = false },
+                    title = {
+                        Text(
+                            text = "Select Target Language",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            uiState.availableLanguages.forEach { lang ->
+                                val isSelected = lang.code == uiState.targetLanguage
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable {
+                                            viewModel.setTargetLanguage(lang.code)
+                                            showLanguageDialog = false
+                                        }
+                                        .testTag("language_option_${lang.code}"),
+                                    shape = RoundedCornerShape(10.dp),
+                                    color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                        ) {
+                                            Text(text = lang.flagEmoji, style = MaterialTheme.typography.titleLarge)
+                                            Column {
+                                                Text(
+                                                    text = lang.displayName,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
+                                                )
+                                                Text(
+                                                    text = lang.nativeName,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                        if (isSelected) {
+                                            Icon(
+                                                imageVector = Icons.Outlined.CheckCircle,
+                                                contentDescription = "Selected",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(20.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { showLanguageDialog = false }) {
+                            Text("Close")
+                        }
+                    }
+                )
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -147,7 +229,7 @@ fun SettingsScreen(
                         }
                         Column {
                             Text(
-                                text = "Hindi Translation",
+                                text = "Offline Translation",
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold
                             )
@@ -159,6 +241,56 @@ fun SettingsScreen(
                         }
                     }
 
+                    // Target Language Selector Picker
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showLanguageDialog = true }
+                            .testTag("settings_language_selector")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 14.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text(
+                                    text = "Target Language",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = currentLanguage.flagEmoji,
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = "${currentLanguage.displayName} (${currentLanguage.nativeName})",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+
+                            TextButton(
+                                onClick = { showLanguageDialog = true },
+                                modifier = Modifier.testTag("settings_change_language_button")
+                            ) {
+                                Text("Change")
+                            }
+                        }
+                    }
+
                     // Model status row
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -166,7 +298,7 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Model Status",
+                            text = "${currentLanguage.displayName} Model Status",
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium
                         )
@@ -206,7 +338,7 @@ fun SettingsScreen(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = "Downloading model...",
+                                    text = "Downloading ${currentLanguage.displayName} model...",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -256,7 +388,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Download model (~30 MB)",
+                                text = "Download ${currentLanguage.displayName} model (~30 MB)",
                                 fontWeight = FontWeight.SemiBold
                             )
                         }
@@ -278,7 +410,7 @@ fun SettingsScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "Delete model",
+                                text = "Delete ${currentLanguage.displayName} model",
                                 fontWeight = FontWeight.SemiBold
                             )
                         }

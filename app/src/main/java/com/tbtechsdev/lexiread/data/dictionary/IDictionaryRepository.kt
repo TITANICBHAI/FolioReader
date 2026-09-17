@@ -8,4 +8,5 @@ interface IDictionaryRepository {
     fun getFrequencyRank(word: String): Int
     fun getFrequency(word: String): Int = getFrequencyRank(word)
     suspend fun lookupWord(raw: String): CachedDefinition? = getDefinition(raw)
+    suspend fun getAllCachedDefinitions(): List<CachedDefinition> = emptyList()
 }

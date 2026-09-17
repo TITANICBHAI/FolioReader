@@ -27,6 +27,7 @@ import com.tbtechsdev.lexiread.data.vocabulary.UserWordRepository
 import com.tbtechsdev.lexiread.domain.model.PdfWord
 import com.tbtechsdev.lexiread.domain.model.WordStatus
 import com.tbtechsdev.lexiread.domain.usecase.DetectDifficultWordsUseCase
+import com.tbtechsdev.lexiread.util.ScreenOrientationMode
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -135,6 +136,9 @@ class ReaderViewModel @Inject constructor(
     private val _isHindiModelDownloaded = MutableStateFlow<Boolean>(false)
     val isHindiModelDownloaded: StateFlow<Boolean> = _isHindiModelDownloaded.asStateFlow()
 
+    val targetLanguage: StateFlow<String> = preferencesRepository.targetLanguage
+        .stateIn(viewModelScope, SharingStarted.Eagerly, "hi")
+
     private var isTranslationPromptShownPref: Boolean = false
 
     private val _sentenceTranslationState = MutableStateFlow<SentenceTranslationState>(SentenceTranslationState.Idle)
@@ -175,6 +179,39 @@ class ReaderViewModel @Inject constructor(
     val isExplainingSheet: StateFlow<Boolean> = _isExplainingSheet.asStateFlow()
 
     private var activeSheetAiJob: Job? = null
+
+    // Screen Orientation & Rotation Control
+    val screenOrientation: StateFlow<ScreenOrientationMode> = preferencesRepository.screenOrientationPreference
+        .map { ScreenOrientationMode.fromKey(it) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ScreenOrientationMode.SENSOR)
+
+    fun setScreenOrientation(mode: ScreenOrientationMode) {
+        viewModelScope.launch {
+            preferencesRepository.setScreenOrientationPreference(mode.key)
+        }
+    }
+
+    fun cycleScreenOrientation() {
+        val current = screenOrientation.value
+        val next = when (current) {
+            ScreenOrientationMode.SENSOR -> ScreenOrientationMode.PORTRAIT
+            ScreenOrientationMode.PORTRAIT -> ScreenOrientationMode.LANDSCAPE
+            ScreenOrientationMode.LANDSCAPE -> ScreenOrientationMode.SENSOR
+        }
+        setScreenOrientation(next)
+    }
+
+    fun toggleScreenOrientation() {
+        val current = screenOrientation.value
+        val next = when (current) {
+            ScreenOrientationMode.PORTRAIT -> ScreenOrientationMode.LANDSCAPE
+            ScreenOrientationMode.LANDSCAPE -> ScreenOrientationMode.PORTRAIT
+            ScreenOrientationMode.SENSOR -> ScreenOrientationMode.LANDSCAPE
+        }
+        setScreenOrientation(next)
+    }
+
+    fun quickRotate() = toggleScreenOrientation()
 
     // Active extraction background jobs per page (Text & OCR)
     private val activeExtractionJobs = ConcurrentHashMap<Int, Job>()
@@ -404,12 +441,15 @@ class ReaderViewModel @Inject constructor(
         _showPostOnboardingHindiPrompt.value = false
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                translationRepository.downloadModel { }
+                val lang = targetLanguage.value
+                translationRepository.downloadModel(lang) { }
                 _isHindiModelDownloaded.value = true
-                preferencesRepository.setHindiModelDownloaded(true)
-                _events.emit(ReaderEvent.ShowSnackbar("Hindi model downloaded"))
+                if (lang == "hi") {
+                    preferencesRepository.setHindiModelDownloaded(true)
+                }
+                _events.emit(ReaderEvent.ShowSnackbar("Translation model downloaded"))
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to download Hindi model", e)
+                Log.e(TAG, "Failed to download translation model", e)
             }
         }
     }
@@ -484,8 +524,15 @@ class ReaderViewModel @Inject constructor(
     init {
         restoreLastSession()
         viewModelScope.launch {
+            preferencesRepository.targetLanguage.collect { lang ->
+                refreshTranslationModelStatus(lang)
+            }
+        }
+        viewModelScope.launch {
             preferencesRepository.isHindiModelDownloaded.collect { downloaded ->
-                _isHindiModelDownloaded.value = downloaded
+                if (targetLanguage.value == "hi") {
+                    _isHindiModelDownloaded.value = downloaded
+                }
             }
         }
         viewModelScope.launch {
@@ -495,11 +542,14 @@ class ReaderViewModel @Inject constructor(
         }
     }
 
-    fun refreshTranslationModelStatus() {
+    fun refreshTranslationModelStatus(lang: String? = null) {
         viewModelScope.launch {
-            val downloaded = translationRepository.isModelDownloaded()
+            val currentLang = lang ?: targetLanguage.value
+            val downloaded = translationRepository.isModelDownloaded(currentLang)
             _isHindiModelDownloaded.value = downloaded
-            preferencesRepository.setHindiModelDownloaded(downloaded)
+            if (currentLang == "hi") {
+                preferencesRepository.setHindiModelDownloaded(downloaded)
+            }
         }
     }
 
@@ -907,7 +957,7 @@ class ReaderViewModel @Inject constructor(
     /**
      * Copy arbitrary text to Android clipboard and notify the user via Snackbar.
      */
-    fun copyTextToClipboard(text: String, label: String = "LexiRead") {
+    fun copyTextToClipboard(text: String, label: String = "Folio Reader") {
         try {
             val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
             val clip = android.content.ClipData.newPlainText(label, text)
@@ -1106,7 +1156,8 @@ class ReaderViewModel @Inject constructor(
     fun translateSentence(sentence: String): Job {
         _sentenceTranslationState.value = SentenceTranslationState.Translating
         return viewModelScope.launch(Dispatchers.IO) {
-            val result = translationRepository.translate(sentence)
+            val lang = targetLanguage.value
+            val result = translationRepository.translate(sentence, lang)
             if (result != null) {
                 _sentenceTranslationState.value = SentenceTranslationState.Success(result)
             } else {

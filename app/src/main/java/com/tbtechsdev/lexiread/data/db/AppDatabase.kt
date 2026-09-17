@@ -18,7 +18,7 @@ const val DICTIONARY_DB_NAME = "dictionary.db"
 
 @Database(
     entities = [CachedDefinition::class, DictionaryEntry::class, CommonWord::class, UserWordEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "LexiRead"
+rootProject.name = "Folio Reader"
 
 include(":app")

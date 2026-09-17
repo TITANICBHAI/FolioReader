@@ -1,11 +1,15 @@
 package com.tbtechsdev.lexiread.ui.reader
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +48,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -78,9 +83,18 @@ fun WordPanelBottomSheet(
     isAiExplaining: Boolean = false,
     onAskAi: () -> Unit = {},
     onPronounceWord: (String) -> Unit = {},
-    onCopyWord: (String) -> Unit = {}
+    onCopyWord: (String) -> Unit = {},
+    phonetic: String? = null,
+    example: String? = null,
+    synonyms: List<String> = emptyList(),
+    antonyms: List<String> = emptyList(),
+    onSynonymClick: (String) -> Unit = {},
+    targetLanguageCode: String = "hi"
 ) {
     var isAiExpanded by rememberSaveable { mutableStateOf(false) }
+    val targetLang = remember(targetLanguageCode) {
+        com.tbtechsdev.lexiread.data.translation.SupportedLanguages.getByCode(targetLanguageCode)
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismissRequest,
@@ -106,40 +120,52 @@ fun WordPanelBottomSheet(
                 .verticalScroll(rememberScrollState())
                 .navigationBarsPadding()
         ) {
-            // 1. Word header with Part of Speech, Pronunciation TTS, and Copy buttons
+            // 1. Word header with Part of Speech, Phonetic IPA, Pronunciation TTS, and Copy buttons
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Row(
-                    verticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text(
-                        text = word,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.testTag("word_panel_word_text")
-                    )
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        verticalAlignment = Alignment.Bottom,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(
+                            text = word,
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.testTag("word_panel_word_text")
+                        )
 
-                    if (!partOfSpeech.isNullOrBlank()) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        ) {
-                            Text(
-                                text = partOfSpeech.lowercase(),
-                                style = MaterialTheme.typography.labelMedium,
-                                fontStyle = FontStyle.Italic,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier
-                                    .padding(horizontal = 8.dp, vertical = 2.dp)
-                                    .testTag("word_panel_part_of_speech")
-                            )
+                        if (!partOfSpeech.isNullOrBlank()) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            ) {
+                                Text(
+                                    text = partOfSpeech.lowercase(),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontStyle = FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                        .testTag("word_panel_part_of_speech")
+                                )
+                            }
                         }
+                    }
+
+                    if (!phonetic.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = phonetic,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontStyle = FontStyle.Italic,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag("word_panel_phonetic")
+                        )
                     }
                 }
 
@@ -172,7 +198,7 @@ fun WordPanelBottomSheet(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
             Spacer(modifier = Modifier.height(16.dp))
 
-            // 3. English definition — from DictionaryEntry.englishDefinition
+            // 2. English definition — from Free Dictionary API
             Text(
                 text = "English Definition",
                 style = MaterialTheme.typography.labelLarge,
@@ -195,6 +221,137 @@ fun WordPanelBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("word_panel_english_definition")
                 )
+            }
+
+            // Example Sentence (from Free Dictionary API)
+            if (!example.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Surface(
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.22f),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("word_panel_example_card")
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.FormatQuote,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .size(20.dp)
+                                .padding(top = 1.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Example",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "“$example”",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontStyle = FontStyle.Italic,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.testTag("word_panel_example_text")
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Synonyms & Antonyms Chips
+            val synList = remember(synonyms) {
+                synonyms.map { it.trim() }.filter { it.isNotBlank() }
+            }
+            val antList = remember(antonyms) {
+                antonyms.map { it.trim() }.filter { it.isNotBlank() }
+            }
+
+            if (synList.isNotEmpty() || antList.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(14.dp))
+
+                if (synList.isNotEmpty()) {
+                    Text(
+                        text = "Synonyms",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("word_panel_synonyms_container")
+                    ) {
+                        synList.forEach { syn ->
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.3f)),
+                                modifier = Modifier
+                                    .clickable { onSynonymClick(syn) }
+                                    .testTag("synonym_chip_$syn")
+                            ) {
+                                Text(
+                                    text = syn,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                if (antList.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "Antonyms",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.outline
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("word_panel_antonyms_container")
+                    ) {
+                        antList.forEach { ant ->
+                            Surface(
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .clickable { onSynonymClick(ant) }
+                                    .testTag("antonym_chip_$ant")
+                            ) {
+                                Text(
+                                    text = ant,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -335,7 +492,7 @@ fun WordPanelBottomSheet(
                                         verticalArrangement = Arrangement.spacedBy(4.dp)
                                     ) {
                                         Text(
-                                            text = "Hindi Translation",
+                                            text = "${targetLang.displayName} Translation",
                                             style = MaterialTheme.typography.labelSmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary

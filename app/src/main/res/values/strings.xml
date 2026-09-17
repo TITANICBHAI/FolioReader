@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">LexiRead</string>
+    <string name="app_name">Folio Reader</string>
 
     <!-- Onboarding -->
     <string name="onboarding_title_1">Open any English PDF</string>
     <string name="onboarding_desc_1">Read your favorite books, articles, and documents with interactive vocabulary assistance.</string>
     <string name="onboarding_title_2">Tap highlighted words for instant meanings</string>
-    <string name="onboarding_desc_2">LexiRead automatically identifies challenging words and provides instant definitions and translations.</string>
+    <string name="onboarding_desc_2">Folio Reader automatically identifies challenging words and provides instant definitions and translations.</string>
     <string name="onboarding_title_3">Build your vocabulary as you read</string>
     <string name="onboarding_desc_3">Save new words, track your learning journey, and review your personal vocabulary anytime.</string>
     <string name="onboarding_skip">Skip</string>

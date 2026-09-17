@@ -1,6 +1,6 @@
 {
-  "name": "LexiRead",
-  "description": "Offline-first reader with vocabulary building, text extraction, OCR, and language tools.",
+  "name": "Folio Reader",
+  "description": "Offline-first PDF reader with vocabulary building, text extraction, OCR, and language tools.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

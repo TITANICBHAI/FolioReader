@@ -15,7 +15,7 @@ android {
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.tbtechsdev.lexiread.gvyrrw"
+    applicationId = "com.aistudio.folioreader.gvyrrw"
     minSdk = 26
     targetSdk = 35
     versionCode = 1

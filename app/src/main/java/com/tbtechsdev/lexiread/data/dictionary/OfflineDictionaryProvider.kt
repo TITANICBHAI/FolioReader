@@ -14,20 +14,24 @@ object OfflineDictionaryProvider {
         val word: String,
         val pos: String,
         val definition: String,
-        val hindiMeaning: String = ""
+        val hindiMeaning: String = "",
+        val phonetic: String = "",
+        val example: String = "",
+        val synonyms: String = "",
+        val antonyms: String = ""
     )
 
     private val ENTRIES = mapOf(
-        "ubiquitous" to WordEntry("ubiquitous", "adjective", "Present, appearing, or found everywhere.", "सर्वव्यापी"),
-        "meticulous" to WordEntry("meticulous", "adjective", "Showing great attention to detail; very careful and precise.", "सूक्ष्म / अत्यंत सावधान"),
-        "ephemeral" to WordEntry("ephemeral", "adjective", "Lasting for a very short time; transitory.", "क्षणभंगुर / अल्पकालिक"),
-        "plethora" to WordEntry("plethora", "noun", "A large or excessive amount of something.", "अतिरेक / भरमार"),
-        "pragmatic" to WordEntry("pragmatic", "adjective", "Dealing with things sensibly and realistically in a practical way.", "व्यावहारिक"),
-        "paradox" to WordEntry("paradox", "noun", "A seemingly absurd or contradictory statement or proposition that may prove to be true.", "विरोधाभास"),
-        "benevolent" to WordEntry("benevolent", "adjective", "Well meaning and kindly; generous and charitable.", "परोपकारी / दयालु"),
-        "catalyst" to WordEntry("catalyst", "noun", "A person or thing that precipitates an event or accelerates change.", "उत्प्रेरक"),
-        "resilient" to WordEntry("resilient", "adjective", "Able to withstand or recover quickly from difficult conditions.", "लचीला / पुनरुत्थानशील"),
-        "nuance" to WordEntry("nuance", "noun", "A subtle difference in or shade of meaning, expression, or sound.", "सूक्ष्म अंतर"),
+        "ubiquitous" to WordEntry("ubiquitous", "adjective", "Present, appearing, or found everywhere.", "सर्वव्यापी", "/juːˈbɪk.wɪ.təs/", "Smartphones have become ubiquitous in modern society.", "omnipresent, universal, pervasive", "rare, scarce"),
+        "meticulous" to WordEntry("meticulous", "adjective", "Showing great attention to detail; very careful and precise.", "सूक्ष्म / अत्यंत सावधान", "/məˈtɪk.jə.ləs/", "She conducted a meticulous inspection of the laboratory.", "thorough, precise, conscientious", "careless, sloppy"),
+        "ephemeral" to WordEntry("ephemeral", "adjective", "Lasting for a very short time; transitory.", "क्षणभंगुर / अल्पकालिक", "/ɪˈfem.ər.əl/", "Fashions are ephemeral, changing with each passing season.", "transitory, fleeting, short-lived", "permanent, enduring"),
+        "plethora" to WordEntry("plethora", "noun", "A large or excessive amount of something.", "अतिरेक / भरमार", "/ˈpleθ.ər.ə/", "The library offers a plethora of resources for research.", "abundance, surplus, profusion", "dearth, shortage, scarcity"),
+        "pragmatic" to WordEntry("pragmatic", "adjective", "Dealing with things sensibly and realistically in a practical way.", "व्यावहारिक", "/præɡˈmæt.ɪk/", "They took a pragmatic approach to budget negotiations.", "practical, realistic, sensible", "idealistic, impractical"),
+        "paradox" to WordEntry("paradox", "noun", "A seemingly absurd or contradictory statement or proposition that may prove to be true.", "विरोधाभास", "/ˈpær.ə.dɒks/", "It is an interesting paradox that standing can be more tiring than walking.", "contradiction, anomaly, enigma"),
+        "benevolent" to WordEntry("benevolent", "adjective", "Well meaning and kindly; generous and charitable.", "परोपकारी / दयालु", "/bəˈnev.əl.ənt/", "A benevolent benefactor funded the new science scholarship.", "kind, charitable, philanthropic", "malevolent, spiteful"),
+        "catalyst" to WordEntry("catalyst", "noun", "A person or thing that precipitates an event or accelerates change.", "उत्प्रेरक", "/ˈkæt.əl.ɪst/", "His speech served as a catalyst for widespread reform.", "stimulus, spark, incentive"),
+        "resilient" to WordEntry("resilient", "adjective", "Able to withstand or recover quickly from difficult conditions.", "लचीला / पुनरुत्थानशील", "/rɪˈzɪl.jənt/", "Communities proved remarkably resilient after the storm.", "tough, adaptable, buoyant", "fragile, vulnerable"),
+        "nuance" to WordEntry("nuance", "noun", "A subtle difference in or shade of meaning, expression, or sound.", "सूक्ष्म अंतर", "/ˈnjuː.ɑːns/", "Her translation captures every nuance of the poet's original verse.", "subtlety, shade, undertone"),
         "ambiguity" to WordEntry("ambiguity", "noun", "The quality of being open to more than one interpretation; inexactness.", "अस्पष्टता / द्व्यर्थकता"),
         "scrutinize" to WordEntry("scrutinize", "verb", "Examine or inspect closely and thoroughly.", "गहराई से जांचना"),
         "superfluous" to WordEntry("superfluous", "adjective", "Unnecessary, especially through being more than enough.", "अनावश्यक / फ़ालतू"),
@@ -133,7 +137,11 @@ object OfflineDictionaryProvider {
             partOfSpeech = entry.pos,
             englishDefinition = entry.definition,
             hindiMeaning = entry.hindiMeaning,
-            cachedAtMs = System.currentTimeMillis()
+            cachedAtMs = System.currentTimeMillis(),
+            phonetic = entry.phonetic,
+            example = entry.example,
+            synonyms = entry.synonyms,
+            antonyms = entry.antonyms
         )
     }
 

@@ -9,5 +9,9 @@ data class CachedDefinition(
     val partOfSpeech: String,
     val englishDefinition: String,
     val hindiMeaning: String = "",   // populated later by ML Kit in Prompt 8
-    val cachedAtMs: Long = System.currentTimeMillis()
+    val cachedAtMs: Long = System.currentTimeMillis(),
+    val phonetic: String = "",
+    val example: String = "",
+    val synonyms: String = "",
+    val antonyms: String = ""
 )

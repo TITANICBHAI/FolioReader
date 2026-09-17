@@ -40,6 +40,21 @@ class ReaderPreferencesRepository @Inject constructor(
         private val KEY_TRANSLATION_PROMPT_SHOWN = booleanPreferencesKey("translation_prompt_shown")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_DARK_MODE = stringPreferencesKey("dark_mode_preference")
+        private val KEY_TARGET_LANGUAGE = stringPreferencesKey("target_translation_language")
+    }
+
+    val targetLanguage: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_TARGET_LANGUAGE] ?: "hi"
+        }
+
+    suspend fun setTargetLanguage(languageCode: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_TARGET_LANGUAGE] = languageCode
+        }
     }
 
     val isOnboardingCompleted: Flow<Boolean> = dataStore.data
