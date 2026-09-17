@@ -40,6 +40,7 @@ class ReaderPreferencesRepository @Inject constructor(
         private val KEY_TRANSLATION_PROMPT_SHOWN = booleanPreferencesKey("translation_prompt_shown")
         private val KEY_ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
         private val KEY_DARK_MODE = stringPreferencesKey("dark_mode_preference")
+        private val KEY_SCREEN_ORIENTATION = stringPreferencesKey("screen_orientation_preference")
         private val KEY_TARGET_LANGUAGE = stringPreferencesKey("target_translation_language")
     }
 
@@ -82,6 +83,20 @@ class ReaderPreferencesRepository @Inject constructor(
     suspend fun setDarkModePreference(mode: String) {
         dataStore.edit { preferences ->
             preferences[KEY_DARK_MODE] = mode
+        }
+    }
+
+    val screenOrientationPreference: Flow<String> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[KEY_SCREEN_ORIENTATION] ?: "sensor"
+        }
+
+    suspend fun setScreenOrientationPreference(mode: String) {
+        dataStore.edit { preferences ->
+            preferences[KEY_SCREEN_ORIENTATION] = mode
         }
     }
 
