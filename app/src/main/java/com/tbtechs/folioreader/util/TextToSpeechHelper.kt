@@ -40,7 +40,7 @@ class TextToSpeechHelper @Inject constructor(
             tts?.setLanguage(Locale.US)
         }
         try {
-            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "lexiread_word_${System.currentTimeMillis()}")
+            tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "folioreader_word_${System.currentTimeMillis()}")
         } catch (e: Exception) {
             Log.e("TextToSpeechHelper", "Error speaking text: ${e.message}", e)
         }

@@ -29,6 +29,5 @@ bash scripts/rename-package.sh
 ```
 
 The script updates package references and moves the Kotlin source and test
-directories. Product-facing class and screen names use `FolioReader`; visual
-branding, sample text, and persisted/exported `lexiread` keys remain unchanged
-for a later branding pass.
+directories. Product-facing class, screen, and export names use `Folio Reader`;
+persisted `lexiread` keys remain unchanged for backward compatibility.

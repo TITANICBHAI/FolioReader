@@ -60,7 +60,7 @@ object VocabularyExporter {
 
         val sb = StringBuilder()
         sb.append("============================================================\n")
-        sb.append("  LEXIREAD VOCABULARY STUDY LIST\n")
+        sb.append("  FOLIO READER VOCABULARY STUDY LIST\n")
         sb.append("  Total Words: ${words.size}  |  Exported: $dateStr\n")
         sb.append("============================================================\n\n")
 

@@ -632,12 +632,12 @@ class VocabularyViewModel @Inject constructor(
         val timestamp = java.text.SimpleDateFormat("yyyyMMdd_HHmm", java.util.Locale.getDefault()).format(java.util.Date())
         return when (format) {
             VocabularyExportFormat.ANKI_CSV -> {
-                val filename = "lexiread_anki_vocab_$timestamp.csv"
+                val filename = "folio_reader_anki_vocab_$timestamp.csv"
                 val content = VocabularyExporter.toAnkiCsv(wordsToExport, defsMap)
                 Pair(filename, content)
             }
             VocabularyExportFormat.PLAIN_TEXT -> {
-                val filename = "lexiread_vocabulary_$timestamp.txt"
+                val filename = "folio_reader_vocabulary_$timestamp.txt"
                 val content = VocabularyExporter.toPlainText(wordsToExport, defsMap)
                 Pair(filename, content)
             }

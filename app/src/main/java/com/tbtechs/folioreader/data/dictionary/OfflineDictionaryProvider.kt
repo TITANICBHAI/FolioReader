@@ -3,7 +3,7 @@ package com.tbtechs.folioreader.data.dictionary
 import com.tbtechs.folioreader.data.db.entities.CachedDefinition
 
 /**
- * Built-in offline English dictionary provider for LexiRead.
+ * Built-in offline English dictionary provider for Folio Reader.
  * Provides instant definitions, parts of speech, and meanings for hundreds of
  * common academic, literary, and high-frequency difficult vocabulary words.
  * Fully offline, zero network latency, zero dependencies.

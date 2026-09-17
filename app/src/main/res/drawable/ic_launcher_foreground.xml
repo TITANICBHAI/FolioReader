@@ -3,7 +3,7 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/lexiread_icon_1789368885671"
+        android:drawable="@drawable/folioreader_icon_1789368885671"
         android:gravity="center" />
 </layer-list>
 

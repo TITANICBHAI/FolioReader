@@ -209,7 +209,7 @@ class ReaderViewModelTest {
         cs1.beginText()
         cs1.setFont(PDType1Font.HELVETICA, 12f)
         cs1.newLineAtOffset(50f, 700f)
-        cs1.showText("This is a comprehensive sample document for testing LexiRead text detection features!")
+        cs1.showText("This is a comprehensive sample document for testing FolioReader text detection features!")
         cs1.endText()
         cs1.close()
 
@@ -250,8 +250,8 @@ class ReaderViewModelTest {
         cs.beginText()
         cs.setFont(PDType1Font.HELVETICA, 12f)
         cs.newLineAtOffset(80f, 720f)
-        // Words: "is", "a" (< 3 chars, skip), "2024", "123" (numeric, skip), "LexiRead!", "reader", "learning" (keep)
-        cs.showText("is a 2024 123 LexiRead! reader learning")
+        // Words: "is", "a" (< 3 chars, skip), "2024", "123" (numeric, skip), "FolioReader!", "reader", "learning" (keep)
+        cs.showText("is a 2024 123 FolioReader! reader learning")
         cs.endText()
         cs.close()
 
@@ -271,12 +271,12 @@ class ReaderViewModelTest {
 
         // Verify kept words
         val normalizedList = words.map { it.normalizedText }
-        assertTrue(normalizedList.contains("lexiread"))
+        assertTrue(normalizedList.contains("folioreader"))
         assertTrue(normalizedList.contains("reader"))
         assertTrue(normalizedList.contains("learning"))
 
         // Verify coordinates non-zero and vary
-        val word1 = words.first { it.normalizedText == "lexiread" }
+        val word1 = words.first { it.normalizedText == "folioreader" }
         val word2 = words.first { it.normalizedText == "reader" }
         assertTrue(word1.x > 0f)
         assertTrue(word1.y > 0f)
@@ -314,7 +314,7 @@ class ReaderViewModelTest {
     fun processPageWords_skipsAlreadyCachedPages() = runTest {
         // Pre-populate word cache
         val existingWords = listOf(
-            PdfWord("LexiRead", "lexiread", 0, 10f, 10f, 50f, 20f)
+            PdfWord("FolioReader", "folioreader", 0, 10f, 10f, 50f, 20f)
         )
         // Since page 0 already exists in cache, calling processPageWords does not trigger re-extraction
         val uri = android.net.Uri.parse("file:///nonexistent.pdf")
