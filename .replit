@@ -1,4 +1,4 @@
-modules = ["bash", "python-base-3.13"]
+modules = ["bash"]
 [nix]
 channel = "stable-25_05"
 packages = ["gradle"]
