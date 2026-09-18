@@ -18,6 +18,7 @@ import androidx.compose.foundation.gestures.transformable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.align
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
@@ -35,6 +36,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -80,7 +82,8 @@ fun PdfPageView(
     onExplainClick: (String) -> Unit = {},
     onCopyClick: (String) -> Unit = {},
     onDefineClick: (String) -> Unit = {},
-    classroomCursorIndex: Int? = null
+    classroomCursorIndex: Int? = null,
+    isCurrentPage: Boolean = true
 ) {
     val classroomWord = if (classroomCursorIndex != null) allPageWords.getOrNull(classroomCursorIndex) else null
     val isClassroomActive = classroomCursorIndex != null && classroomWord != null
@@ -100,13 +103,24 @@ fun PdfPageView(
     var offset by remember(pageIndex) { mutableStateOf(Offset.Zero) }
     var displayedSize by remember(pageIndex) { mutableStateOf(IntSize.Zero) }
 
+    fun resetZoom() {
+        scale = 1f
+        offset = Offset.Zero
+    }
+
+    LaunchedEffect(isCurrentPage) {
+        if (!isCurrentPage) {
+            resetZoom()
+        }
+    }
+
     val transformState = rememberTransformableState { zoomChange, panChange, _ ->
         val newScale = (scale * zoomChange).coerceIn(1f, 4f)
         scale = newScale
-        if (newScale > 1f) {
-            offset += panChange * newScale
+        offset = if (newScale > 1f) {
+            clampPageOffset(offset + panChange, newScale, displayedSize)
         } else {
-            offset = Offset.Zero
+            Offset.Zero
         }
     }
 
@@ -127,6 +141,7 @@ fun PdfPageView(
                 .pointerInput(pageIndex, highlightedWords, allPageWords, isVocabAssistanceEnabled, pdfDimensions, isClassroomActive) {
                     detectTapGestures(
                         onTap = { tapOffset ->
+                            val pagePoint = mapToPagePoint(tapOffset, scale, offset, displayedSize)
                             val curW = displayedSize.width.toFloat()
                             val curH = displayedSize.height.toFloat()
                             val pdfW = pdfDimensions?.first?.toFloat() ?: (bitmap?.width?.toFloat() ?: curW)
@@ -144,7 +159,7 @@ fun PdfPageView(
                                         val top = word.y * scaleY - touchMargin
                                         val right = (word.x + word.width) * scaleX + touchMargin
                                         val bottom = (word.y + word.height) * scaleY + touchMargin
-                                        tapOffset.x in left..right && tapOffset.y in top..bottom
+                                        pagePoint.x in left..right && pagePoint.y in top..bottom
                                     }
                                 }
                                 // 2. Second priority: any word on the current page
@@ -154,7 +169,7 @@ fun PdfPageView(
                                         val top = word.y * scaleY - touchMargin
                                         val right = (word.x + word.width) * scaleX + touchMargin
                                         val bottom = (word.y + word.height) * scaleY + touchMargin
-                                        tapOffset.x in left..right && tapOffset.y in top..bottom
+                                        pagePoint.x in left..right && pagePoint.y in top..bottom
                                     }
                                     // 3. Fallback: nearest word within a 36px touch radius
                                     if (tappedWord == null) {
@@ -162,15 +177,15 @@ fun PdfPageView(
                                         val nearest = allPageWords.minByOrNull { word ->
                                             val cx = (word.x + word.width / 2f) * scaleX
                                             val cy = (word.y + word.height / 2f) * scaleY
-                                            val dx = tapOffset.x - cx
-                                            val dy = tapOffset.y - cy
+                                            val dx = pagePoint.x - cx
+                                            val dy = pagePoint.y - cy
                                             dx * dx + dy * dy
                                         }
                                         if (nearest != null) {
                                             val cx = (nearest.x + nearest.width / 2f) * scaleX
                                             val cy = (nearest.y + nearest.height / 2f) * scaleY
-                                            val dx = tapOffset.x - cx
-                                            val dy = tapOffset.y - cy
+                                            val dx = pagePoint.x - cx
+                                            val dy = pagePoint.y - cy
                                             if (dx * dx + dy * dy <= maxDistSq) {
                                                 tappedWord = nearest
                                             }
@@ -187,6 +202,7 @@ fun PdfPageView(
                         },
                         onLongPress = { longPressOffset ->
                             if (allPageWords.isNotEmpty()) {
+                                val pagePoint = mapToPagePoint(longPressOffset, scale, offset, displayedSize)
                                 val curW = displayedSize.width.toFloat()
                                 val curH = displayedSize.height.toFloat()
                                 val pdfW = pdfDimensions?.first?.toFloat() ?: (bitmap?.width?.toFloat() ?: curW)
@@ -198,8 +214,8 @@ fun PdfPageView(
                                     val word = allPageWords[idx]
                                     val centerX = (word.x + word.width / 2f) * scaleX
                                     val centerY = (word.y + word.height / 2f) * scaleY
-                                    val dx = longPressOffset.x - centerX
-                                    val dy = longPressOffset.y - centerY
+                                    val dx = pagePoint.x - centerX
+                                    val dy = pagePoint.y - centerY
                                     dx * dx + dy * dy
                                 }
                                 if (nearestWordIdx != null) {
@@ -228,26 +244,36 @@ fun PdfPageView(
                                 }
                             }
                         },
-                        onDoubleTap = {
+                        onDoubleTap = { tapOffset ->
                             if (scale > 1.2f) {
-                                scale = 1f
-                                offset = Offset.Zero
+                                resetZoom()
                             } else {
-                                scale = 2.2f
-                                offset = Offset.Zero
+                                val targetScale = 2.2f
+                                offset = zoomOffsetAroundPoint(
+                                    point = tapOffset,
+                                    currentScale = scale,
+                                    targetScale = targetScale,
+                                    currentOffset = offset,
+                                    size = displayedSize
+                                )
+                                scale = targetScale
                             }
                         }
                     )
                 }
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = offset.x
-                    translationY = offset.y
-                }
                 .transformable(state = transformState, enabled = true),
             contentAlignment = Alignment.Center
         ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        translationX = offset.x
+                        translationY = offset.y
+                    }
+            ) {
             if (bitmap != null && !bitmap.isRecycled) {
                 val imageBitmap = remember(bitmap) { bitmap.asImageBitmap() }
                 Image(
@@ -470,6 +496,72 @@ fun PdfPageView(
                     }
                 }
             }
+
+            if (scale > 1.01f) {
+                Surface(
+                    onClick = { resetZoom() },
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 4.dp,
+                    shadowElevation = 4.dp,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(10.dp)
+                        .testTag("pdf_zoom_reset_button")
+                ) {
+                    Text(
+                        text = "Fit",
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
+                    )
+                }
+            }
         }
     }
+}
+
+private fun mapToPagePoint(
+    point: Offset,
+    scale: Float,
+    offset: Offset,
+    size: IntSize
+): Offset {
+    if (scale <= 1f || size.width <= 0 || size.height <= 0) return point
+
+    val center = Offset(size.width / 2f, size.height / 2f)
+    return Offset(
+        x = (point.x - center.x - offset.x) / scale + center.x,
+        y = (point.y - center.y - offset.y) / scale + center.y
+    )
+}
+
+private fun zoomOffsetAroundPoint(
+    point: Offset,
+    currentScale: Float,
+    targetScale: Float,
+    currentOffset: Offset,
+    size: IntSize
+): Offset {
+    if (currentScale <= 0f || size.width <= 0 || size.height <= 0) return Offset.Zero
+
+    val center = Offset(size.width / 2f, size.height / 2f)
+    val scaleRatio = targetScale / currentScale
+    val nextOffset = Offset(
+        x = point.x - center.x - (point.x - center.x - currentOffset.x) * scaleRatio,
+        y = point.y - center.y - (point.y - center.y - currentOffset.y) * scaleRatio
+    )
+    return clampPageOffset(nextOffset, targetScale, size)
+}
+
+private fun clampPageOffset(offset: Offset, scale: Float, size: IntSize): Offset {
+    if (scale <= 1f || size.width <= 0 || size.height <= 0) return Offset.Zero
+
+    val maxX = (size.width * (scale - 1f) / 2f).coerceAtLeast(0f)
+    val maxY = (size.height * (scale - 1f) / 2f).coerceAtLeast(0f)
+    return Offset(
+        x = offset.x.coerceIn(-maxX, maxX),
+        y = offset.y.coerceIn(-maxY, maxY)
+    )
 }

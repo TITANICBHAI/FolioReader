@@ -313,7 +313,8 @@ fun ReaderScreen(
                                     }
                                 }
                             }
-                        }
+                        },
+                        isCurrentPage = pageIndex == uiState.currentPage - 1
                     )
                 }
             }
