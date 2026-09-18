@@ -8,8 +8,8 @@ The provided 720x1600 screenshots were cropped from y=64 to y=1515 to remove the
 
 ## Before publishing
 
-1. Replace the `#` Google Play links with the real Play Store URL.
-2. Replace `REPLACE_WITH_SUPPORT_EMAIL` in `support.html` and the legal pages with the real support/privacy address.
+1. The homepage download button links to the latest GitHub release at `https://github.com/TITANICBHAI/PDFReader/releases/latest`.
+2. The published support/privacy contact is `tbtechsdev@gmail.com`.
 3. Review the Privacy Policy/Terms against the final release build and Play Console Data safety declaration.
 4. Confirm whether Classroom mode, Gemini explanations, analytics, advertising, or any future server-side service are enabled in the release; update the legal text accordingly.
 
