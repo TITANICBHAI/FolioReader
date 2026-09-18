@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://folioreaderapp.pages.dev/sitemap.xml
